@@ -37,8 +37,8 @@ if (infoItem) {
     });
 }
 
-// TODO: Set TOKEN_MINT and HELIUS_API_KEY once new CA is live
-const TOKEN_MINT = null;
+// TODO: Update chain-specific API for holder count and MCAP once chain is confirmed
+const TOKEN_MINT = '0x7786f4a729d58f82c912cfc36d65acb134cdb164';
 const HELIUS_API_KEY = null;
 const UPDATE_INTERVAL = 15000; // 15 seconds
 
