@@ -37,119 +37,22 @@ if (infoItem) {
     });
 }
 
-// Fetch Market Cap from Dexscreener
+// TODO: Set TOKEN_MINT and HELIUS_API_KEY once new CA is live
+const TOKEN_MINT = null;
+const HELIUS_API_KEY = null;
+const UPDATE_INTERVAL = 15000; // 15 seconds
+
 async function fetchMarketCap() {
-    try {
-        const response = await fetch('https://api.dexscreener.com/latest/dex/tokens/FWG3tCsV7UHjEc4ekzVerjHhLACtbaMRegHzn5ECvmUc');
-        const data = await response.json();
-        
-        if (data.pairs && data.pairs.length > 0) {
-            const pair = data.pairs[0];
-            const mcap = pair.marketCap;
-            
-            if (mcap) {
-                // Format market cap
-                let formatted;
-                if (mcap >= 1000000) {
-                    formatted = '$' + (mcap / 1000000).toFixed(2) + 'M';
-                } else if (mcap >= 1000) {
-                    formatted = '$' + (mcap / 1000).toFixed(2) + 'K';
-                } else {
-                    formatted = '$' + mcap.toFixed(0);
-                }
-                return formatted;
-            }
-        }
-        return '---';
-    } catch (error) {
-        console.error('Error fetching market cap:', error);
-        return '---';
-    }
+    return '---';
 }
 
 async function updateMarketCap() {
     const mcapElement = document.getElementById('mcap');
-    if (!mcapElement) return;
-    
-    const mcap = await fetchMarketCap();
-    mcapElement.textContent = mcap;
+    if (mcapElement) mcapElement.textContent = '---';
 }
 
-// Live Solana Token Holder Count
-const TOKEN_MINT = 'FWG3tCsV7UHjEc4ekzVerjHhLACtbaMRegHzn5ECvmUc';
-const HELIUS_API_KEY = '02135807-dd1a-41f0-be2c-8ae2c389ffb6';
-const UPDATE_INTERVAL = 15000; // 15 seconds
-
 async function fetchHolderCount() {
-    try {
-        // Use Helius to get accurate count
-        let totalHolders = 0;
-        let cursor = null;
-        let hasMore = true;
-        let pageCount = 0;
-        const maxPages = 10; // Limit to prevent too many API calls
-
-        while (hasMore && pageCount < maxPages) {
-            const requestBody = {
-                jsonrpc: '2.0',
-                id: 'holder-count',
-                method: 'getTokenAccounts',
-                params: {
-                    mint: TOKEN_MINT,
-                    limit: 1000
-                }
-            };
-
-            if (cursor) {
-                requestBody.params.cursor = cursor;
-            }
-
-            const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                
-                if (data.result && data.result.token_accounts) {
-                    // Count only accounts with non-zero balances
-                    const nonZeroAccounts = data.result.token_accounts.filter(acc => {
-                        const amount = parseFloat(acc.amount);
-                        return amount > 0;
-                    });
-                    totalHolders += nonZeroAccounts.length;
-                    pageCount++;
-
-                    if (data.result.cursor && data.result.token_accounts.length === 1000) {
-                        cursor = data.result.cursor;
-                    } else {
-                        hasMore = false;
-                    }
-                } else {
-                    hasMore = false;
-                }
-            } else {
-                hasMore = false;
-            }
-        }
-
-        console.log(`Total holders found: ${totalHolders} (Pages fetched: ${pageCount})`);
-        
-        // If we hit the page limit and haven't finished, estimate remaining
-        if (pageCount >= maxPages && hasMore) {
-            console.log('Hit page limit - actual count may be higher');
-        }
-        
-        return totalHolders > 0 ? totalHolders : 2990;
-        
-    } catch (error) {
-        console.error('Error fetching holder count:', error);
-        return 2990; // Fallback to known count from DexScreener
-    }
+    return null;
 }
 
 function formatNumber(num) {
@@ -164,6 +67,7 @@ async function updateHolderCount() {
     if (!holderElement) return;
     
     const count = await fetchHolderCount();
+    holderElement.textContent = '---';
     if (count !== null) {
         const oldCount = holderElement.textContent;
         const newCount = formatNumber(count);
@@ -270,58 +174,7 @@ document.querySelectorAll('.step').forEach(step => {
 // ===========================
 
 async function fetchLeaderboardData() {
-    try {
-        const requestBody = {
-            jsonrpc: '2.0',
-            id: 'leaderboard',
-            method: 'getTokenAccounts',
-            params: {
-                mint: TOKEN_MINT,
-                limit: 1000
-            }
-        };
-
-        const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch leaderboard data');
-        }
-
-        const data = await response.json();
-        
-        if (data.result && data.result.token_accounts) {
-            // Filter non-zero balances and sort by amount
-            const allHolders = data.result.token_accounts
-                .filter(acc => parseFloat(acc.amount) > 0)
-                .map(acc => ({
-                    wallet: acc.owner,
-                    amount: parseFloat(acc.amount) / 1000000, // Convert from smallest unit
-                    holdingTime: 'Loading...'
-                }))
-                .sort((a, b) => b.amount - a.amount);
-            
-            // Skip first wallet (liquidity pool) and take next 25
-            const topHolders = allHolders.slice(1, 26);
-            
-            // Fetch holding time for each holder
-            await Promise.all(topHolders.map(async (holder) => {
-                holder.holdingTime = await getHoldingTime(holder.wallet);
-            }));
-
-            return topHolders;
-        }
-        
-        return [];
-    } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-        return [];
-    }
+    return [];
 }
 
 async function getHoldingTime(walletAddress) {
@@ -437,7 +290,7 @@ async function updateLeaderboard() {
     const holders = await fetchLeaderboardData();
     
     if (holders.length === 0) {
-        leaderboardBody.innerHTML = '<tr><td colspan="4" class="leaderboard-loading">No data available</td></tr>';
+        leaderboardBody.innerHTML = '<tr><td colspan="4" class="leaderboard-loading">Coming soon</td></tr>';
         return;
     }
     
